@@ -1,0 +1,1063 @@
+// OmniAI — data model.
+// Every tenant-owned model carries `organizationId` and is listed in
+// server/tenancy/tenant-models.ts so the tenant-scoped client can enforce isolation.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+  AGENT
+}
+
+enum ChannelType {
+  WEBSITE
+  WHATSAPP
+  INSTAGRAM
+  MESSENGER
+  TELEGRAM
+  EMAIL
+  SMS
+}
+
+enum ConversationStatus {
+  AI_ACTIVE
+  WAITING_FOR_AGENT
+  HUMAN_ACTIVE
+  CLOSED
+}
+
+enum SenderType {
+  CUSTOMER
+  AI
+  AGENT
+  SYSTEM
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+  LOCATION
+  INTERACTIVE
+  TEMPLATE
+  SYSTEM
+}
+
+enum MessageStatus {
+  PENDING
+  RECEIVED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum Intent {
+  FAQ
+  SALES
+  SUPPORT
+  PRICING
+  DEMO
+  CONTACT
+  COMPLAINT
+  TECHNICAL
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+}
+
+enum LeadTemperature {
+  COLD
+  WARM
+  HOT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Tone {
+  PROFESSIONAL
+  FRIENDLY
+  CONCISE
+  SALES
+  TECHNICAL
+  CUSTOM
+}
+
+enum AnswerLength {
+  SHORT
+  MEDIUM
+  LONG
+}
+
+enum EscalationBehavior {
+  SUGGEST
+  AUTOMATIC
+  DISABLED
+}
+
+enum PromptLayer {
+  GLOBAL_POLICY
+  BUSINESS_IDENTITY
+  PERSONALITY
+  CHANNEL
+  BUSINESS_RULES
+}
+
+enum KnowledgeSourceType {
+  PDF
+  DOCX
+  TXT
+  MARKDOWN
+  WEBSITE
+  FAQ
+  MANUAL
+}
+
+enum KnowledgeStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ToolExecutionStatus {
+  SUCCESS
+  FAILED
+  DENIED
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum UsageKind {
+  CHAT
+  EMBEDDING
+  SUMMARY
+  CLASSIFICATION
+  SUGGESTION
+  TRANSCRIPTION
+}
+
+enum AutomationTrigger {
+  CONVERSATION_CREATED
+  MESSAGE_RECEIVED
+  WHATSAPP_MESSAGE_RECEIVED
+  LEAD_CREATED
+  HANDOFF_REQUESTED
+  CONVERSATION_INACTIVE
+  INTENT_DETECTED
+  KEYWORD_DETECTED
+}
+
+enum IntegrationType {
+  HUBSPOT
+  SALESFORCE
+  PIPEDRIVE
+  ZAPIER
+  MAKE
+  N8N
+  SHOPIFY
+  WOOCOMMERCE
+  STRIPE
+  GOOGLE_CALENDAR
+  OUTLOOK_CALENDAR
+  CUSTOM_API
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+enum InboundEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+// ─────────────────────── Identity & tenancy ───────────────────────
+
+model Organization {
+  id                   String   @id @default(cuid())
+  name                 String
+  slug                 String   @unique
+  industry             String?
+  website              String?
+  timezone             String   @default("Europe/Berlin")
+  defaultLanguage      String   @default("en")
+  /// Days after which closed conversations are purged (null = keep forever).
+  messageRetentionDays Int?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  memberships        Membership[]
+  bots               BotConfiguration[]
+  promptConfigs      PromptConfiguration[]
+  channels           Channel[]
+  whatsappAccounts   WhatsAppAccount[]
+  customers          Customer[]
+  customerIdentities CustomerIdentity[]
+  customerNotes      CustomerNote[]
+  tags               Tag[]
+  customerTags       CustomerTag[]
+  conversations      Conversation[]
+  assignments        ConversationAssignment[]
+  messages           Message[]
+  summaries          ConversationSummary[]
+  leads              Lead[]
+  tickets            Ticket[]
+  knowledgeDocuments KnowledgeDocument[]
+  knowledgeChunks    KnowledgeChunk[]
+  toolExecutions     ToolExecution[]
+  usageRecords       UsageRecord[]
+  auditLogs          AuditLog[]
+  automations        Automation[]
+  integrations       Integration[]
+  webhookEndpoints   WebhookEndpoint[]
+  webhookDeliveries  WebhookDelivery[]
+  businessHours      BusinessHours[]
+  products           Product[]
+  appointments       Appointment[]
+  whatsappTemplates  WhatsAppTemplate[]
+  automationRuns     AutomationRun[]
+  notifications      Notification[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  image        String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  memberships           Membership[]
+  assignedConversations Conversation[]           @relation("ConversationAssignee")
+  assignmentsMade       ConversationAssignment[] @relation("AssignmentAssignedBy")
+  assignmentsReceived   ConversationAssignment[] @relation("AssignmentAssignee")
+  sentMessages          Message[]
+  notes                 CustomerNote[]
+  assignedLeads         Lead[]
+  assignedTickets       Ticket[]
+  auditLogs             AuditLog[]
+  knowledgeDocuments    KnowledgeDocument[]
+  notifications         Notification[]
+}
+
+/// A user's seat in an organization (a human support "agent" when role = AGENT).
+model Membership {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role     @default(AGENT)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+// ─────────────────────────── AI agent ────────────────────────────
+
+model BotConfiguration {
+  id                  String             @id @default(cuid())
+  organizationId      String
+  /// Public identifier used in the embed snippet (data-bot-id). Not a secret.
+  publicKey           String             @unique
+  agentName           String             @default("AI Assistant")
+  companyName         String
+  businessDescription String             @default("")
+  welcomeMessage      String             @default("Hi! How can I help you today?")
+  fallbackResponse    String             @default("I don't have enough verified information to answer that. Would you like me to connect you with our team?")
+  tone                Tone               @default(PROFESSIONAL)
+  customTone          String?
+  defaultLanguage     String             @default("en")
+  /// 0..1, mapped to model temperature.
+  creativity          Float              @default(0.3)
+  answerLength        AnswerLength       @default(MEDIUM)
+  escalationBehavior  EscalationBehavior @default(SUGGEST)
+  model               String             @default("gpt-4o-mini")
+  showSourcesWebsite  Boolean            @default(true)
+  showSourcesWhatsapp Boolean            @default(false)
+  // Widget appearance
+  primaryColor        String             @default("#4f46e5")
+  widgetPosition      String             @default("bottom-right")
+  avatarUrl           String?
+  logoUrl             String?
+  allowAttachments    Boolean            @default(true)
+  quickReplies        Json               @default("[]")
+  /// Allowed origins for the website widget (empty = any).
+  allowedOrigins      String[]           @default([])
+  /// Agent behavior: tool switches and escalation rules (validated by agentBehaviorSchema).
+  behavior            Json               @default("{}")
+  isActive            Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  organization  Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  promptConfigs PromptConfiguration[]
+  channels      Channel[]
+
+  @@index([organizationId])
+}
+
+/// One layer of the composed system prompt. `channel` set = channel-specific layer.
+model PromptConfiguration {
+  id             String       @id @default(cuid())
+  organizationId String
+  botId          String?
+  layer          PromptLayer
+  channel        ChannelType?
+  content        String
+  isActive       Boolean      @default(true)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bot          BotConfiguration? @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, botId, layer])
+}
+
+model BusinessHours {
+  id             String @id @default(cuid())
+  organizationId String
+  /// 0 = Sunday … 6 = Saturday
+  weekday        Int
+  /// "HH:mm" in the organization's timezone
+  opensAt        String
+  closesAt       String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, weekday])
+}
+
+// ─────────────────────────── Channels ────────────────────────────
+
+model Channel {
+  id             String      @id @default(cuid())
+  organizationId String
+  botId          String?
+  type           ChannelType
+  name           String
+  isActive       Boolean     @default(true)
+  /// Non-secret channel settings. Secrets live in encrypted columns.
+  config         Json        @default("{}")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bot             BotConfiguration? @relation(fields: [botId], references: [id], onDelete: SetNull)
+  whatsappAccount WhatsAppAccount?
+  conversations   Conversation[]
+
+  @@index([organizationId, type])
+}
+
+model WhatsAppAccount {
+  id                   String    @id @default(cuid())
+  organizationId       String
+  channelId            String    @unique
+  /// Meta phone number id — routes inbound webhooks to the right tenant.
+  phoneNumberId        String    @unique
+  businessAccountId    String
+  displayPhoneNumber   String?
+  /// AES-256-GCM encrypted per-tenant token; null = use WHATSAPP_ACCESS_TOKEN env.
+  accessTokenEncrypted String?
+  /// From the last successful connection test.
+  verifiedName         String?
+  qualityRating        String?
+  lastVerifiedAt       DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  channel      Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+/// Idempotency ledger for inbound provider webhooks (one row per provider event id).
+/// Durable queue + idempotency ledger for inbound provider webhooks: one row per provider
+/// event (message id, or message id + status). Stored before acknowledging, processed
+/// in the background, retried with backoff. Global model: written before the tenant is
+/// known; organizationId is set once the event is routed.
+model InboundWebhookEvent {
+  id             String             @id @default(cuid())
+  provider       String
+  eventId        String
+  /// "message" | "status"
+  eventType      String             @default("message")
+  organizationId String?
+  /// The provider payload for this event; cleared after processing (data minimization).
+  payload        Json?
+  status         InboundEventStatus @default(RECEIVED)
+  attempts       Int                @default(0)
+  error          String?
+  nextAttemptAt  DateTime?
+  processedAt    DateTime?
+  createdAt      DateTime           @default(now())
+
+  @@unique([provider, eventId])
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, createdAt])
+}
+
+/// Approved WhatsApp message templates (synced from Meta), required to message a
+/// customer outside the 24-hour customer-service window.
+model WhatsAppTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  language       String
+  category       String
+  /// APPROVED | PENDING | REJECTED | PAUSED | DISABLED
+  status         String
+  components     Json     @default("[]")
+  metaTemplateId String?
+  lastSyncedAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name, language])
+}
+
+// ─────────────────────────── Customers ───────────────────────────
+
+model Customer {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String?
+  email          String?
+  phone          String?
+  company        String?
+  language       String?
+  avatarUrl      String?
+  isAnonymous    Boolean   @default(true)
+  /// Long-term memory: durable facts/preferences extracted by the AI.
+  memory         Json      @default("{}")
+  aiSummary      String?
+  customFields   Json      @default("{}")
+  consentAt      DateTime?
+  /// Set when this anonymous profile was merged into another customer.
+  mergedIntoId   String?
+  lastSeenAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  identities    CustomerIdentity[]
+  conversations Conversation[]
+  notes         CustomerNote[]
+  tags          CustomerTag[]
+  leads         Lead[]
+  tickets       Ticket[]
+  appointments  Appointment[]
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, email])
+  @@index([organizationId, phone])
+}
+
+/// Channel-specific identifier (anonymous widget visitor id, WhatsApp wa_id, …).
+model CustomerIdentity {
+  id             String      @id @default(cuid())
+  organizationId String
+  customerId     String
+  channel        ChannelType
+  externalId     String
+  metadata       Json        @default("{}")
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, channel, externalId])
+  @@index([customerId])
+}
+
+model CustomerNote {
+  id             String   @id @default(cuid())
+  organizationId String
+  customerId     String
+  authorId       String?
+  content        String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+  @@index([organizationId])
+}
+
+model Tag {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  color          String   @default("#64748b")
+  createdAt      DateTime @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customers    CustomerTag[]
+
+  @@unique([organizationId, name])
+}
+
+model CustomerTag {
+  organizationId String
+  customerId     String
+  tagId          String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag          Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, tagId])
+  @@index([organizationId])
+  @@index([tagId])
+}
+
+// ───────────────────────── Conversations ─────────────────────────
+
+model Conversation {
+  id                    String             @id @default(cuid())
+  organizationId        String
+  customerId            String
+  channelId             String
+  channel               ChannelType
+  status                ConversationStatus @default(AI_ACTIVE)
+  intent                Intent?
+  leadTemperature       LeadTemperature?
+  assignedToId          String?
+  unreadCount           Int                @default(0)
+  lastMessageAt         DateTime           @default(now())
+  lastMessagePreview    String?
+  /// Last inbound customer message — drives WhatsApp 24h service window.
+  lastCustomerMessageAt DateTime?
+  /// Time of first human/AI reply, for response-time analytics.
+  firstResponseAt       DateTime?
+  handoffRequestedAt    DateTime?
+  /// True when closed without human involvement.
+  aiResolved            Boolean            @default(false)
+  closedAt              DateTime?
+  metadata              Json               @default("{}")
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer                 @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  channelRef     Channel                  @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  assignedTo     User?                    @relation("ConversationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages       Message[]
+  summaries      ConversationSummary[]
+  assignments    ConversationAssignment[]
+  leads          Lead[]
+  tickets        Ticket[]
+  toolExecutions ToolExecution[]
+  usageRecords   UsageRecord[]
+  appointments   Appointment[]
+
+  @@index([organizationId, lastMessageAt(sort: Desc)])
+  @@index([organizationId, status])
+  @@index([organizationId, channel])
+  @@index([organizationId, assignedToId])
+  @@index([organizationId, createdAt])
+  @@index([customerId])
+}
+
+/// Assignment history (who handled a conversation and when).
+model ConversationAssignment {
+  id             String    @id @default(cuid())
+  organizationId String
+  conversationId String
+  assigneeId     String?
+  assignedById   String?
+  createdAt      DateTime  @default(now())
+  endedAt        DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  assignee     User?        @relation("AssignmentAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignedBy   User?        @relation("AssignmentAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([organizationId])
+}
+
+model Message {
+  id                String        @id @default(cuid())
+  organizationId    String
+  conversationId    String
+  senderType        SenderType
+  senderUserId      String?
+  channel           ChannelType
+  content           String        @default("")
+  messageType       MessageType   @default(TEXT)
+  /// Provider message id (e.g. WhatsApp wamid) — unique per channel for idempotency.
+  externalMessageId String?
+  status            MessageStatus @default(SENT)
+  intent            Intent?
+  /// Knowledge sources used to produce an AI answer: [{documentId, title, chunkId}]
+  sources           Json?
+  /// Attachments: [{url, mimeType, fileName, size}]
+  attachments       Json?
+  /// Buttons/quick replies/location payloads, provider extras.
+  metadata          Json          @default("{}")
+  errorCode         String?
+  createdAt         DateTime      @default(now())
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUser     User?           @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+  toolExecutions ToolExecution[]
+
+  @@unique([channel, externalMessageId])
+  @@index([conversationId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, channel, createdAt])
+}
+
+model ConversationSummary {
+  id             String   @id @default(cuid())
+  organizationId String
+  conversationId String
+  summary        String
+  /// Number of messages covered by this summary.
+  messageCount   Int
+  lastMessageId  String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([organizationId])
+}
+
+// ─────────────────────────── CRM ────────────────────────────
+
+model Lead {
+  id               String          @id @default(cuid())
+  organizationId   String
+  customerId       String?
+  conversationId   String?
+  assignedToId     String?
+  name             String?
+  email            String?
+  phone            String?
+  company          String?
+  requestedService String?
+  message          String?
+  preferredContact String?
+  status           LeadStatus      @default(NEW)
+  temperature      LeadTemperature @default(WARM)
+  intent           Intent?
+  source           ChannelType?
+  estimatedValue   Decimal?        @db.Decimal(12, 2)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  assignedTo   User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([customerId])
+}
+
+model Ticket {
+  id             String         @id @default(cuid())
+  organizationId String
+  customerId     String?
+  conversationId String?
+  assignedToId   String?
+  subject        String
+  description    String?
+  priority       TicketPriority @default(MEDIUM)
+  status         TicketStatus   @default(OPEN)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  assignedTo   User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([customerId])
+}
+
+/// Appointment request collected by the AI. The team confirms it (startsAt) — the AI
+/// never claims a booking that a person or calendar integration has not confirmed.
+model Appointment {
+  id             String            @id @default(cuid())
+  organizationId String
+  customerId     String?
+  conversationId String?
+  topic          String
+  /// The customer's preferred time(s), in their own words.
+  preferredTime  String
+  /// Set when the appointment is confirmed.
+  startsAt       DateTime?
+  status         AppointmentStatus @default(REQUESTED)
+  contactName    String?
+  email          String?
+  phone          String?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([customerId])
+}
+
+/// Product / plan catalog: the only source of prices the AI may quote.
+model Product {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  sku            String?
+  category       String?
+  description    String   @default("")
+  price          Decimal? @db.Decimal(12, 2)
+  currency       String   @default("EUR")
+  /// e.g. "per month", "one-time", "starting at"
+  priceNote      String?
+  url            String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, isActive])
+}
+
+// ─────────────────────── Knowledge base ────────────────────────
+
+model KnowledgeDocument {
+  id             String              @id @default(cuid())
+  organizationId String
+  title          String
+  sourceType     KnowledgeSourceType
+  sourceUrl      String?
+  fileName       String?
+  mimeType       String?
+  fileSize       Int?
+  storageKey     String?
+  contentHash    String?
+  /// Extracted plain text (kept so documents can be re-chunked / re-embedded).
+  rawText        String?
+  status         KnowledgeStatus     @default(PENDING)
+  error          String?
+  chunkCount     Int                 @default(0)
+  tokenCount     Int                 @default(0)
+  /// Times a chunk from this document was used in an answer.
+  usageCount     Int                 @default(0)
+  /// Embedding model of the stored chunk vectors (null = keyword search only so far).
+  embeddingModel String?
+  processedAt    DateTime?
+  metadata       Json                @default("{}")
+  createdById    String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  chunks       KnowledgeChunk[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, contentHash])
+}
+
+model KnowledgeChunk {
+  id             String                       @id @default(cuid())
+  organizationId String
+  documentId     String
+  chunkIndex     Int
+  content        String
+  tokenCount     Int                          @default(0)
+  pageNumber     Int?
+  /// Heading path / URL fragment / section location.
+  location       String?
+  metadata       Json                         @default("{}")
+  embedding      Unsupported("vector(1536)")?
+  createdAt      DateTime                     @default(now())
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([organizationId])
+}
+
+/// Embedding cache keyed by model + sha256(text). Not tenant data (pure function of text).
+model EmbeddingCache {
+  id          String                      @id @default(cuid())
+  model       String
+  contentHash String
+  embedding   Unsupported("vector(1536)")
+  createdAt   DateTime                    @default(now())
+
+  @@unique([model, contentHash])
+}
+
+// ───────────────────── Operations & audit ──────────────────────
+
+model ToolExecution {
+  id             String              @id @default(cuid())
+  organizationId String
+  conversationId String?
+  messageId      String?
+  toolName       String
+  input          Json
+  output         Json?
+  status         ToolExecutionStatus
+  error          String?
+  durationMs     Int?
+  createdAt      DateTime            @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([conversationId])
+}
+
+model UsageRecord {
+  id               String    @id @default(cuid())
+  organizationId   String
+  conversationId   String?
+  kind             UsageKind
+  model            String
+  promptTokens     Int       @default(0)
+  completionTokens Int       @default(0)
+  embeddingTokens  Int       @default(0)
+  costUsd          Decimal   @default(0) @db.Decimal(12, 6)
+  latencyMs        Int?
+  createdAt        DateTime  @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String?
+  action         String
+  entityType     String?
+  entityId       String?
+  metadata       Json     @default("{}")
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt(sort: Desc)])
+}
+
+// ──────────────────── Automations & integrations ────────────────────
+
+model Automation {
+  id             String            @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  trigger        AutomationTrigger
+  /// Trigger filters, e.g. {"channel":"WHATSAPP","keywords":["refund"]}
+  conditions     Json              @default("{}")
+  /// Ordered action list, e.g. [{"type":"ADD_TAG","tag":"pricing"}]
+  actions        Json              @default("[]")
+  isActive       Boolean           @default(true)
+  runCount       Int               @default(0)
+  lastRunAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  runs         AutomationRun[]
+
+  @@index([organizationId, trigger, isActive])
+}
+
+enum AutomationRunStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+  SKIPPED
+}
+
+/// One execution of an automation for one event (unique per automation + event, so a
+/// redelivered event never runs an automation twice).
+model AutomationRun {
+  id             String              @id @default(cuid())
+  organizationId String
+  automationId   String
+  eventId        String
+  eventType      String
+  status         AutomationRunStatus
+  conversationId String?
+  /// Per-action outcome: [{type, ok, detail}]
+  results        Json                @default("[]")
+  error          String?
+  durationMs     Int?
+  createdAt      DateTime            @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  automation   Automation   @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, eventId])
+  @@index([organizationId, createdAt])
+  @@index([automationId, createdAt])
+}
+
+/// In-app notification for a team member (e.g. from the "Notify team" automation action).
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  title          String
+  body           String    @default("")
+  /// Relative dashboard link, e.g. /inbox?conversation=…
+  link           String?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId, readAt, createdAt])
+}
+
+model Integration {
+  id               String          @id @default(cuid())
+  organizationId   String
+  type             IntegrationType
+  name             String
+  config           Json            @default("{}")
+  /// AES-256-GCM encrypted JSON of credentials.
+  secretsEncrypted String?
+  isActive         Boolean         @default(false)
+  lastSyncAt       DateTime?
+  lastError        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, type])
+}
+
+model WebhookEndpoint {
+  id                  String    @id @default(cuid())
+  organizationId      String
+  url                 String
+  /// Encrypted HMAC signing secret.
+  secretEncrypted     String
+  /// Subscribed event types ("*" = all).
+  events              String[]
+  description         String?
+  /// custom | zapier | make | n8n — only changes the setup hints in the UI.
+  preset              String    @default("custom")
+  isActive            Boolean   @default(true)
+  /// Deliveries that failed permanently in a row; the endpoint is disabled at a threshold.
+  consecutiveFailures Int       @default(0)
+  disabledReason      String?
+  lastDeliveryAt      DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
+
+  @@index([organizationId])
+}
+
+model WebhookDelivery {
+  id             String         @id @default(cuid())
+  organizationId String
+  endpointId     String
+  event          String
+  /// Domain event id (receivers use it to deduplicate; sent as X-OmniAI-Event-Id).
+  eventId        String
+  payload        Json
+  durationMs     Int?
+  status         DeliveryStatus @default(PENDING)
+  attempts       Int            @default(0)
+  responseStatus Int?
+  lastError      String?
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@unique([endpointId, eventId])
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, createdAt])
+  @@index([endpointId, createdAt])
+}

@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "omniai-local",
+      "credentials": [{ "accessKey": "omniai", "secretKey": "omniai-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

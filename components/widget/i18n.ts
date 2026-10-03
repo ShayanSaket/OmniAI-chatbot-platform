@@ -1,0 +1,231 @@
+// Widget UI strings. The AI itself answers in the customer's language; these cover the
+// interface chrome. Persian is rendered right-to-left.
+
+export type WidgetLang = 'en' | 'de' | 'fa' | 'es' | 'fr';
+
+const en = {
+  placeholder: 'Write a message…',
+  send: 'Send message',
+  attach: 'Attach a file',
+  removeAttachment: 'Remove attachment',
+  openChat: 'Open chat',
+  closeChat: 'Close chat',
+  menu: 'More options',
+  talkToHuman: 'Talk to a human',
+  restart: 'Start a new conversation',
+  expand: 'Expand',
+  collapse: 'Collapse',
+  aiAssistant: 'AI assistant',
+  repliesInstantly: 'Replies instantly',
+  teamOnline: 'Team online',
+  teamOffline: 'Team offline',
+  teamBack: (when: string) => `Team back ${when}`,
+  waitingForAgent: 'Connecting you with our team…',
+  waitingHint: 'A team member will reply here shortly.',
+  teamMember: 'Team member',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  sending: 'Sending',
+  sent: 'Sent',
+  read: 'Read',
+  failed: 'Not sent',
+  retry: 'Retry',
+  reconnecting: 'Reconnecting…',
+  sources: 'Sources',
+  poweredBy: 'Powered by',
+  typing: 'is typing',
+  searching: 'Looking that up…',
+  working: 'Working on it…',
+  uploading: 'Uploading…',
+  errorGeneric: 'Something went wrong. Please try again.',
+  blocked: 'Chat is not available on this website.',
+  dismiss: 'Dismiss',
+  newConversationStarted: 'New conversation started',
+};
+
+export type WidgetStrings = typeof en;
+
+const de: WidgetStrings = {
+  placeholder: 'Nachricht schreiben…',
+  send: 'Nachricht senden',
+  attach: 'Datei anhängen',
+  removeAttachment: 'Anhang entfernen',
+  openChat: 'Chat öffnen',
+  closeChat: 'Chat schließen',
+  menu: 'Weitere Optionen',
+  talkToHuman: 'Mit einem Menschen sprechen',
+  restart: 'Neues Gespräch beginnen',
+  expand: 'Vergrößern',
+  collapse: 'Verkleinern',
+  aiAssistant: 'KI-Assistent',
+  repliesInstantly: 'Antwortet sofort',
+  teamOnline: 'Team online',
+  teamOffline: 'Team offline',
+  teamBack: (when) => `Team wieder ${when}`,
+  waitingForAgent: 'Wir verbinden Sie mit unserem Team…',
+  waitingHint: 'Ein Teammitglied antwortet hier in Kürze.',
+  teamMember: 'Teammitglied',
+  today: 'Heute',
+  yesterday: 'Gestern',
+  sending: 'Wird gesendet',
+  sent: 'Gesendet',
+  read: 'Gelesen',
+  failed: 'Nicht gesendet',
+  retry: 'Erneut senden',
+  reconnecting: 'Verbindung wird wiederhergestellt…',
+  sources: 'Quellen',
+  poweredBy: 'Bereitgestellt von',
+  typing: 'schreibt',
+  searching: 'Sucht nach Informationen…',
+  working: 'Kümmert sich darum…',
+  uploading: 'Wird hochgeladen…',
+  errorGeneric: 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+  blocked: 'Der Chat ist auf dieser Website nicht verfügbar.',
+  dismiss: 'Schließen',
+  newConversationStarted: 'Neues Gespräch gestartet',
+};
+
+const fa: WidgetStrings = {
+  placeholder: 'پیام خود را بنویسید…',
+  send: 'ارسال پیام',
+  attach: 'پیوست فایل',
+  removeAttachment: 'حذف پیوست',
+  openChat: 'باز کردن گفتگو',
+  closeChat: 'بستن گفتگو',
+  menu: 'گزینه‌های بیشتر',
+  talkToHuman: 'گفتگو با کارشناس',
+  restart: 'شروع گفتگوی جدید',
+  expand: 'بزرگ‌تر',
+  collapse: 'کوچک‌تر',
+  aiAssistant: 'دستیار هوش مصنوعی',
+  repliesInstantly: 'پاسخ فوری',
+  teamOnline: 'تیم آنلاین است',
+  teamOffline: 'تیم آفلاین است',
+  teamBack: (when) => `بازگشت تیم ${when}`,
+  waitingForAgent: 'در حال اتصال به تیم ما…',
+  waitingHint: 'یکی از اعضای تیم به‌زودی همین‌جا پاسخ می‌دهد.',
+  teamMember: 'عضو تیم',
+  today: 'امروز',
+  yesterday: 'دیروز',
+  sending: 'در حال ارسال',
+  sent: 'ارسال شد',
+  read: 'خوانده شد',
+  failed: 'ارسال نشد',
+  retry: 'تلاش دوباره',
+  reconnecting: 'در حال اتصال مجدد…',
+  sources: 'منابع',
+  poweredBy: 'قدرت‌گرفته از',
+  typing: 'در حال نوشتن است',
+  searching: 'در حال جستجو…',
+  working: 'در حال انجام…',
+  uploading: 'در حال بارگذاری…',
+  errorGeneric: 'مشکلی پیش آمد. لطفاً دوباره تلاش کنید.',
+  blocked: 'گفتگو در این وب‌سایت در دسترس نیست.',
+  dismiss: 'بستن',
+  newConversationStarted: 'گفتگوی جدید آغاز شد',
+};
+
+const es: WidgetStrings = {
+  placeholder: 'Escribe un mensaje…',
+  send: 'Enviar mensaje',
+  attach: 'Adjuntar archivo',
+  removeAttachment: 'Quitar adjunto',
+  openChat: 'Abrir chat',
+  closeChat: 'Cerrar chat',
+  menu: 'Más opciones',
+  talkToHuman: 'Hablar con una persona',
+  restart: 'Iniciar una nueva conversación',
+  expand: 'Ampliar',
+  collapse: 'Reducir',
+  aiAssistant: 'Asistente de IA',
+  repliesInstantly: 'Responde al instante',
+  teamOnline: 'Equipo en línea',
+  teamOffline: 'Equipo desconectado',
+  teamBack: (when) => `Equipo de vuelta ${when}`,
+  waitingForAgent: 'Te estamos conectando con nuestro equipo…',
+  waitingHint: 'Una persona del equipo responderá aquí en breve.',
+  teamMember: 'Miembro del equipo',
+  today: 'Hoy',
+  yesterday: 'Ayer',
+  sending: 'Enviando',
+  sent: 'Enviado',
+  read: 'Leído',
+  failed: 'No enviado',
+  retry: 'Reintentar',
+  reconnecting: 'Reconectando…',
+  sources: 'Fuentes',
+  poweredBy: 'Con la tecnología de',
+  typing: 'está escribiendo',
+  searching: 'Buscando información…',
+  working: 'Trabajando en ello…',
+  uploading: 'Subiendo…',
+  errorGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+  blocked: 'El chat no está disponible en este sitio web.',
+  dismiss: 'Cerrar',
+  newConversationStarted: 'Nueva conversación iniciada',
+};
+
+const fr: WidgetStrings = {
+  placeholder: 'Écrivez un message…',
+  send: 'Envoyer le message',
+  attach: 'Joindre un fichier',
+  removeAttachment: 'Retirer la pièce jointe',
+  openChat: 'Ouvrir le chat',
+  closeChat: 'Fermer le chat',
+  menu: "Plus d'options",
+  talkToHuman: 'Parler à une personne',
+  restart: 'Nouvelle conversation',
+  expand: 'Agrandir',
+  collapse: 'Réduire',
+  aiAssistant: 'Assistant IA',
+  repliesInstantly: 'Répond instantanément',
+  teamOnline: 'Équipe en ligne',
+  teamOffline: 'Équipe hors ligne',
+  teamBack: (when) => `Équipe de retour ${when}`,
+  waitingForAgent: 'Nous vous mettons en relation avec notre équipe…',
+  waitingHint: 'Un membre de l’équipe vous répondra ici sous peu.',
+  teamMember: "Membre de l'équipe",
+  today: "Aujourd'hui",
+  yesterday: 'Hier',
+  sending: 'Envoi',
+  sent: 'Envoyé',
+  read: 'Lu',
+  failed: 'Non envoyé',
+  retry: 'Réessayer',
+  reconnecting: 'Reconnexion…',
+  sources: 'Sources',
+  poweredBy: 'Propulsé par',
+  typing: 'écrit',
+  searching: 'Recherche en cours…',
+  working: 'Traitement en cours…',
+  uploading: 'Envoi du fichier…',
+  errorGeneric: 'Une erreur est survenue. Veuillez réessayer.',
+  blocked: "Le chat n'est pas disponible sur ce site.",
+  dismiss: 'Fermer',
+  newConversationStarted: 'Nouvelle conversation démarrée',
+};
+
+const STRINGS: Record<WidgetLang, WidgetStrings> = { en, de, fa, es, fr };
+
+export function resolveLang(locale: string | undefined, fallback: string): WidgetLang {
+  for (const candidate of [locale?.slice(0, 2).toLowerCase(), fallback, 'en']) {
+    if (candidate && candidate in STRINGS) return candidate as WidgetLang;
+  }
+  return 'en';
+}
+
+export function stringsFor(lang: WidgetLang): WidgetStrings {
+  return STRINGS[lang];
+}
+
+export const isRtl = (lang: WidgetLang) => lang === 'fa';
+
+/** Quick replies that mean "connect me with a person" in any supported language trigger a real handoff. */
+const HANDOFF_PHRASES = new Set(
+  [...Object.values(STRINGS).map((t) => t.talkToHuman), 'talk to a human', 'speak to a human', 'talk to a person', 'human']
+    .map((p) => p.trim().toLowerCase()),
+);
+
+export function isHandoffPhrase(text: string): boolean {
+  return HANDOFF_PHRASES.has(text.trim().toLowerCase());
+}
