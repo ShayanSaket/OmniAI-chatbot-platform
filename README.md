@@ -1,5 +1,7 @@
 # OmniAI
 
+![OmniAI: one AI agent for website live chat and WhatsApp Business, with knowledge base, unified inbox, lead capture, human handoff, analytics and multi-tenancy](docs/images/omniai-overview.png)
+
 An omnichannel AI customer-service platform: one AI agent, one knowledge base and one
 inbox for **website live chat** and **WhatsApp Business**, with lead capture, human
 handoff and analytics. Multi-tenant from day one.
