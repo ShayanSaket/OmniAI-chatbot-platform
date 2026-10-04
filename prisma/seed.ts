@@ -18,6 +18,8 @@ import {
   PRODUCTS,
   SCRIPTED,
   SHORT_EXCHANGES,
+  GAP_ANSWER,
+  GAP_EXCHANGES,
   TEAM,
   type Line,
   type ScriptedConversation,
@@ -134,10 +136,11 @@ async function main() {
 
   // Knowledge sources, chunked. Embeddings are added by the backfill job once an
   // embedding provider (OPENAI_API_KEY) is configured; until then keyword search works.
+  const docIds = new Map<string, string>();
   for (const k of KNOWLEDGE) {
     const faq = k.sourceType === 'FAQ' ? parseFaqText(k.text) : null;
     const chunks = faq ? chunkFaq(faq, { title: k.title }) : chunkText(k.text, { title: k.title });
-    await prisma.knowledgeDocument.create({
+    const doc = await prisma.knowledgeDocument.create({
       data: {
         organizationId,
         title: k.title,
@@ -162,6 +165,7 @@ async function main() {
         },
       },
     });
+    docIds.set(k.title, doc.id);
   }
 
   await prisma.product.createMany({
@@ -177,6 +181,16 @@ async function main() {
   const tagId = (name: string) => tags.find((t) => t.name === name)!.id;
 
   let messageCount = 0;
+
+  /** What a real AI reply records for analytics: retrieval hits and cited sources. */
+  function aiReplyFields(source: string | null | undefined): Pick<Prisma.MessageCreateManyInput, 'metadata' | 'sources'> {
+    if (source === null) return { metadata: { model: MODEL, retrieval: { hits: 0, topScore: null, topSimilarity: null } } };
+    const documentId = source ? docIds.get(source) : undefined;
+    return {
+      metadata: { model: MODEL, retrieval: { hits: documentId ? 3 : 1, topScore: 0.62, topSimilarity: 0.58 } },
+      ...(documentId ? { sources: [{ documentId, title: source!, chunkId: 'seed' }] } : {}),
+    };
+  }
 
   async function createConversation(script: ScriptedConversation) {
     const c = script.customer;
@@ -241,6 +255,7 @@ async function main() {
         externalMessageId: script.channel === 'WHATSAPP' && who !== 'system' ? `wamid.seed.${randomUUID()}` : undefined,
         status: who === 'customer' ? 'RECEIVED' : script.channel === 'WHATSAPP' ? 'READ' : 'DELIVERED',
         intent: who === 'customer' ? script.intent : undefined,
+        ...(who === 'ai' ? aiReplyFields(script.source) : {}),
         createdAt: at,
       });
     }
@@ -263,6 +278,8 @@ async function main() {
         lastCustomerMessageAt,
         firstResponseAt,
         handoffRequestedAt: script.handoff ? (handoffAt ?? lastAt) : null,
+        // Analytics read the handoff time from metadata (it survives "return to AI").
+        ...(script.handoff ? { metadata: { handoff: { reason: 'customer_request', requestedAt: (handoffAt ?? lastAt).toISOString() } } } : {}),
         aiResolved: Boolean(script.aiResolved) && script.status === 'CLOSED',
         closedAt: script.status === 'CLOSED' ? new Date(lastAt.getTime() + 15 * 60_000) : null,
         createdAt,
@@ -327,6 +344,9 @@ async function main() {
           intent: script.intent,
           source: script.channel,
           estimatedValue: script.lead.estimatedValue,
+          // Won/lost leads close a couple of days after the conversation.
+          closedAt: script.lead.status === 'WON' || script.lead.status === 'LOST' ? new Date(lastAt.getTime() + 2 * 86_400_000) : null,
+          ...(script.lead.status === 'LOST' ? { lostReason: 'Budget below the Starter plan' } : {}),
           createdAt: lastAt,
         },
       });
@@ -362,6 +382,7 @@ async function main() {
       customer: { phone, language: ex.lang },
       channel,
       intent: ex.intent,
+      source: ex.source,
       daysAgo,
       status: open ? 'AI_ACTIVE' : 'CLOSED',
       aiResolved: !escalated,
@@ -374,6 +395,26 @@ async function main() {
         ...(rand() < 0.5 ? [['customer', pick(['Thanks!', 'Danke!', 'Great, thank you.', 'ok 👍'])] as Line] : []),
       ],
     });
+  }
+
+  // Questions the knowledge base can't answer yet (AI insights → knowledge gaps).
+  for (const ex of GAP_EXCHANGES) {
+    for (let n = 0; n < 2; n++) {
+      const channel: ChannelType = rand() < 0.4 ? 'WHATSAPP' : 'WEBSITE';
+      await createConversation({
+        customer: { phone: channel === 'WHATSAPP' ? `+49${between(1500000000, 1799999999)}` : undefined, language: ex.lang },
+        channel,
+        intent: ex.intent,
+        source: null,
+        daysAgo: Math.min(29, Math.floor(rand() * 21)),
+        status: 'CLOSED',
+        aiResolved: false,
+        lines: [
+          ['customer', ex.q],
+          ['ai', GAP_ANSWER[ex.lang] ?? GAP_ANSWER.en!],
+        ],
+      });
+    }
   }
 
   // Embedding usage for the initial knowledge import estimate.

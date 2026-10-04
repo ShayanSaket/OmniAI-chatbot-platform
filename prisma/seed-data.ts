@@ -147,6 +147,8 @@ export interface ScriptedConversation {
   };
   ticket?: { subject: string; priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' };
   summary?: string;
+  /** Knowledge source the AI answered from (title); `null` = no verified answer existed. */
+  source?: string | null;
   lines: Line[];
 }
 
@@ -400,19 +402,37 @@ export const SCRIPTED: ScriptedConversation[] = [
 ];
 
 /** Short exchanges used to give the dashboard realistic volume. */
-export const SHORT_EXCHANGES: { lang: string; intent: Intent; q: string; a: string }[] = [
-  { lang: 'en', intent: 'FAQ', q: 'Do you offer a free trial?', a: 'Yes — a 14-day free trial on Starter and Growth, no credit card required.' },
-  { lang: 'en', intent: 'FAQ', q: 'Which languages does the bot speak?', a: "It replies in the customer's language, including English, German, Persian, Spanish and French." },
-  { lang: 'en', intent: 'PRICING', q: 'How much is the Growth plan?', a: 'Growth is €399 per month (net) and includes website + WhatsApp, up to 5,000 conversations, lead management and automations.' },
-  { lang: 'en', intent: 'TECHNICAL', q: 'Do you have an API?', a: 'Yes — a REST API and signed webhooks are available on Growth and Enterprise.' },
-  { lang: 'en', intent: 'SUPPORT', q: 'How do I reset my password?', a: 'Use "Forgot password" on the sign-in page, or ask a workspace owner to reset it for you.' },
-  { lang: 'en', intent: 'FAQ', q: 'Is it GDPR compliant? Where is data stored?', a: 'Customer data is hosted in Germany (Frankfurt), and we provide a data processing agreement on request.' },
-  { lang: 'en', intent: 'FAQ', q: 'Can I connect my existing WhatsApp number?', a: 'Yes, via the WhatsApp Business Platform. We guide you through the Meta verification during setup.' },
-  { lang: 'de', intent: 'FAQ', q: 'Wie lange dauert die Einrichtung?', a: 'Eine typische Einführung dauert 1–2 Wochen – inklusive Wissensdatenbank, Widget, WhatsApp-Verifizierung und Schulung.' },
-  { lang: 'de', intent: 'PRICING', q: 'Sind die Preise inkl. MwSt.?', a: 'Alle Preise verstehen sich netto, zzgl. 19 % MwSt.' },
-  { lang: 'de', intent: 'FAQ', q: 'Kann ich monatlich kündigen?', a: 'Ja, Monatspläne sind zum Ende jedes Abrechnungsmonats kündbar.' },
-  { lang: 'es', intent: 'FAQ', q: '¿Tienen prueba gratuita?', a: 'Sí, 14 días gratis en Starter y Growth, sin tarjeta de crédito.' },
-  { lang: 'fr', intent: 'PRICING', q: 'Combien coûte le plan Starter ?', a: 'Le plan Starter coûte 149 € HT par mois, pour un maximum de 1 000 conversations.' },
-  { lang: 'fa', intent: 'FAQ', q: 'ساعات کاری پشتیبانی چیست؟', a: 'پشتیبانی دوشنبه تا جمعه، ساعت ۹ تا ۱۸ به وقت برلین در دسترس است. خارج از این ساعات، دستیار هوش مصنوعی ۲۴ ساعته پاسخ می‌دهد.' },
+export const SHORT_EXCHANGES: { lang: string; intent: Intent; q: string; a: string; source?: string }[] = [
+  { lang: 'en', intent: 'FAQ', q: 'Do you offer a free trial?', a: 'Yes — a 14-day free trial on Starter and Growth, no credit card required.' , source: 'Pricing FAQ' },
+  { lang: 'en', intent: 'FAQ', q: 'Which languages does the bot speak?', a: "It replies in the customer's language, including English, German, Persian, Spanish and French." , source: 'Services overview' },
+  { lang: 'en', intent: 'PRICING', q: 'How much is the Growth plan?', a: 'Growth is €399 per month (net) and includes website + WhatsApp, up to 5,000 conversations, lead management and automations.' , source: 'Pricing FAQ' },
+  { lang: 'en', intent: 'TECHNICAL', q: 'Do you have an API?', a: 'Yes — a REST API and signed webhooks are available on Growth and Enterprise.' , source: 'Services overview' },
+  { lang: 'en', intent: 'SUPPORT', q: 'How do I reset my password?', a: 'Use "Forgot password" on the sign-in page, or ask a workspace owner to reset it for you.' , source: 'Support FAQ' },
+  { lang: 'en', intent: 'FAQ', q: 'Is it GDPR compliant? Where is data stored?', a: 'Customer data is hosted in Germany (Frankfurt), and we provide a data processing agreement on request.' , source: 'Support FAQ' },
+  { lang: 'en', intent: 'FAQ', q: 'Can I connect my existing WhatsApp number?', a: 'Yes, via the WhatsApp Business Platform. We guide you through the Meta verification during setup.' , source: 'Services overview' },
+  { lang: 'de', intent: 'FAQ', q: 'Wie lange dauert die Einrichtung?', a: 'Eine typische Einführung dauert 1–2 Wochen – inklusive Wissensdatenbank, Widget, WhatsApp-Verifizierung und Schulung.' , source: 'Services overview' },
+  { lang: 'de', intent: 'PRICING', q: 'Sind die Preise inkl. MwSt.?', a: 'Alle Preise verstehen sich netto, zzgl. 19 % MwSt.' , source: 'Pricing FAQ' },
+  { lang: 'de', intent: 'FAQ', q: 'Kann ich monatlich kündigen?', a: 'Ja, Monatspläne sind zum Ende jedes Abrechnungsmonats kündbar.' , source: 'Pricing FAQ' },
+  { lang: 'es', intent: 'FAQ', q: '¿Tienen prueba gratuita?', a: 'Sí, 14 días gratis en Starter y Growth, sin tarjeta de crédito.' , source: 'Pricing FAQ' },
+  { lang: 'fr', intent: 'PRICING', q: 'Combien coûte le plan Starter ?', a: 'Le plan Starter coûte 149 € HT par mois, pour un maximum de 1 000 conversations.' , source: 'Pricing FAQ' },
+  { lang: 'fa', intent: 'FAQ', q: 'ساعات کاری پشتیبانی چیست؟', a: 'پشتیبانی دوشنبه تا جمعه، ساعت ۹ تا ۱۸ به وقت برلین در دسترس است. خارج از این ساعات، دستیار هوش مصنوعی ۲۴ ساعته پاسخ می‌دهد.' , source: 'Opening hours' },
   { lang: 'en', intent: 'OTHER', q: 'hi', a: 'Hi there! 👋 How can I help you today?' },
 ];
+
+/** Questions the knowledge base cannot answer yet (they show up as gaps in AI insights). */
+export const GAP_EXCHANGES: { lang: string; intent: Intent; q: string }[] = [
+  { lang: 'en', intent: 'TECHNICAL', q: 'How do I install the widget on Squarespace?' },
+  { lang: 'en', intent: 'TECHNICAL', q: 'Is there an installation guide for WordPress?' },
+  { lang: 'en', intent: 'SUPPORT', q: 'Can you send me the installation steps for our Wix site?' },
+  { lang: 'en', intent: 'TECHNICAL', q: 'Installation on Shopify — where do I paste the code?' },
+  { lang: 'en', intent: 'TECHNICAL', q: 'Do you integrate with Salesforce?' },
+  { lang: 'en', intent: 'SALES', q: 'Is there a Salesforce integration for leads?' },
+  { lang: 'de', intent: 'SUPPORT', q: 'Wie trage ich unsere USt-IdNr. auf der Rechnung ein?' },
+  { lang: 'en', intent: 'SUPPORT', q: 'How can I add our VAT ID to the invoice?' },
+];
+
+export const GAP_ANSWER: Record<string, string> = {
+  en: "I don't have verified information about that yet. Would you like me to connect you with our team?",
+  de: 'Dazu habe ich leider noch keine verifizierten Informationen. Soll ich Sie mit unserem Team verbinden?',
+};
+

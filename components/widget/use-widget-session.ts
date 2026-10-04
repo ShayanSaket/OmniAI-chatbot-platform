@@ -30,6 +30,8 @@ export interface WidgetState {
   awaitingReply: boolean;
   connection: 'connected' | 'reconnecting';
   unread: number;
+  /** A team member is typing (their name, or '' when unknown); null otherwise. */
+  agentTyping: string | null;
 }
 
 type Action =
@@ -47,7 +49,8 @@ type Action =
   | { type: 'markCustomerRead' }
   | { type: 'connection'; value: 'connected' | 'reconnecting' }
   | { type: 'reset' }
-  | { type: 'clearUnread' };
+  | { type: 'clearUnread' }
+  | { type: 'agentTyping'; name: string | null };
 
 /** Inserts or replaces a message (by id, or by clientMessageId for optimistic ones), keeping order. */
 function upsertMessage(list: WidgetMessage[], message: WidgetMessage): { list: WidgetMessage[]; isNew: boolean } {
@@ -76,7 +79,12 @@ function reducer(state: WidgetState, action: Action): WidgetState {
     case 'upsert': {
       const { list, isNew } = upsertMessage(state.messages, action.message);
       const fromTeam = action.message.role === 'ai' || action.message.role === 'agent';
-      return { ...state, messages: list, unread: state.unread + (isNew && fromTeam && action.countUnread ? 1 : 0) };
+      return {
+        ...state,
+        messages: list,
+        unread: state.unread + (isNew && fromTeam && action.countUnread ? 1 : 0),
+        agentTyping: action.message.role === 'agent' ? null : state.agentTyping,
+      };
     }
     case 'conversation':
       return { ...state, conversation: action.conversation };
@@ -113,6 +121,8 @@ function reducer(state: WidgetState, action: Action): WidgetState {
       return { ...state, conversation: null, messages: [], streaming: null, awaitingReply: false };
     case 'clearUnread':
       return { ...state, unread: 0 };
+    case 'agentTyping':
+      return { ...state, agentTyping: action.name };
   }
 }
 
@@ -145,6 +155,7 @@ export function useWidgetSession(options: {
     awaitingReply: false,
     connection: 'connected',
     unread: 0,
+    agentTyping: null,
   });
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -152,6 +163,7 @@ export function useWidgetSession(options: {
   openRef.current = options.isOpen;
   const initRef = useRef<SessionInit | null>(null);
   const eventsAbort = useRef<AbortController | null>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleEvent = useCallback((event: WidgetEvent, fromOwnSend: boolean) => {
     switch (event.type) {
@@ -161,6 +173,12 @@ export function useWidgetSession(options: {
         break;
       case 'conversation':
         dispatch({ type: 'conversation', conversation: event.conversation });
+        break;
+      case 'typing':
+        // Shown briefly; the team member's dashboard repeats it while they keep typing.
+        dispatch({ type: 'agentTyping', name: event.name ?? '' });
+        if (typingTimer.current) clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => dispatch({ type: 'agentTyping', name: null }), 6000);
         break;
       case 'assistant.start':
         dispatch({ type: 'streamStart', streamId: event.streamId });

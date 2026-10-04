@@ -246,3 +246,13 @@ export async function whatsappWindowState(ctx: ServiceContext, conversationId: s
     closesAt: conversation.lastCustomerMessageAt ? new Date(conversation.lastCustomerMessageAt.getTime() + 24 * 3_600_000).toISOString() : null,
   };
 }
+
+/** Approved templates that can be sent from the inbox (body variables only). */
+export async function listSendableTemplates(ctx: ServiceContext) {
+  if (!hasPermission(ctx.role, 'conversations:reply')) throw forbidden();
+  const rows = await ctx.db.whatsAppTemplate.findMany({ where: { status: 'APPROVED' }, orderBy: [{ name: 'asc' }, { language: 'asc' }] });
+  return rows
+    .map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, ...templateInfo(t.components) }))
+    .filter((t) => t.supported)
+    .map(({ supported: _supported, ...t }) => t);
+}

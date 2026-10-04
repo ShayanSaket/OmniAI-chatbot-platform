@@ -32,6 +32,7 @@ export const TENANT_MODELS = new Set([
   'WhatsAppTemplate',
   'AutomationRun',
   'Notification',
+  'InsightReport',
   'WebhookEndpoint',
   'WebhookDelivery',
 ]);

@@ -226,6 +226,7 @@ export function WidgetApp({ initialConfig }: { initialConfig: WidgetConfig }) {
       streamingText={state.streaming?.text || null}
       streamingStatus={state.streaming?.status ?? null}
       awaitingReply={state.awaitingReply}
+      agentTyping={state.agentTyping}
       connection={state.connection}
       expanded={expanded}
       canExpand={!fullscreen}

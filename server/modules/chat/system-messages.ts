@@ -18,6 +18,12 @@ const TEXT: Record<
     fallbackOffline: string;
     talkToHuman: string;
     cannotShareInternals: string;
+    /** A team member took over from the AI. */
+    agentJoined: (name: string | null) => string;
+    /** The team handed the conversation back to the AI assistant. */
+    returnedToAi: string;
+    /** The team closed the conversation. */
+    conversationClosed: string;
   }
 > = {
   en: {
@@ -30,6 +36,9 @@ const TEXT: Record<
     fallbackOffline: "I'm sorry — I'm having trouble answering right now. Please try again in a moment, or leave your email and our team will follow up.",
     talkToHuman: 'Talk to a human',
     cannotShareInternals: "I can't share details about how I'm configured, but I'm happy to help with your question. What can I do for you?",
+    agentJoined: (name) => `${name ?? 'A member of our team'} joined the conversation.`,
+    returnedToAi: "You're chatting with our AI assistant again. Ask for a team member any time.",
+    conversationClosed: 'This conversation was closed. Send a message any time to start a new one.',
   },
   de: {
     handoffOnline: 'Ich habe ein Teammitglied gebeten, dazuzukommen. Gleich ist jemand für Sie da – ergänzen Sie gern schon Details.',
@@ -41,6 +50,9 @@ const TEXT: Record<
     fallbackOffline: 'Entschuldigung – ich kann gerade nicht antworten. Bitte versuchen Sie es gleich noch einmal oder hinterlassen Sie Ihre E-Mail-Adresse, damit unser Team sich meldet.',
     talkToHuman: 'Mit einem Menschen sprechen',
     cannotShareInternals: 'Details zu meiner Konfiguration kann ich nicht teilen – aber bei Ihrem Anliegen helfe ich gern. Was kann ich für Sie tun?',
+    agentJoined: (name) => `${name ?? 'Ein Teammitglied'} ist dem Gespräch beigetreten.`,
+    returnedToAi: 'Sie schreiben wieder mit unserem KI-Assistenten. Sie können jederzeit ein Teammitglied anfragen.',
+    conversationClosed: 'Dieses Gespräch wurde beendet. Schreiben Sie jederzeit, um ein neues zu beginnen.',
   },
   fa: {
     handoffOnline: 'از یکی از اعضای تیم خواستم به گفتگو بپیوندد. به‌زودی کسی در خدمت شماست — در این فاصله می‌توانید جزئیات را بنویسید.',
@@ -52,6 +64,9 @@ const TEXT: Record<
     fallbackOffline: 'متأسفم — در حال حاضر نمی‌توانم پاسخ دهم. لطفاً کمی بعد دوباره امتحان کنید یا ایمیل خود را بگذارید تا تیم ما پیگیری کند.',
     talkToHuman: 'گفتگو با کارشناس',
     cannotShareInternals: 'نمی‌توانم جزئیات تنظیمات خودم را به اشتراک بگذارم، اما با کمال میل در مورد سؤال شما کمک می‌کنم. چه کاری می‌توانم برایتان انجام دهم؟',
+    agentJoined: (name) => `${name ?? 'یکی از اعضای تیم'} به گفتگو پیوست.`,
+    returnedToAi: 'اکنون دوباره با دستیار هوش مصنوعی ما گفتگو می‌کنید. هر زمان خواستید می‌توانید درخواست کارشناس کنید.',
+    conversationClosed: 'این گفتگو بسته شد. هر زمان پیامی بفرستید تا گفتگوی جدیدی شروع شود.',
   },
   es: {
     handoffOnline: 'He pedido a una persona del equipo que se una. Enseguida te atenderán; mientras tanto puedes añadir detalles.',
@@ -63,6 +78,9 @@ const TEXT: Record<
     fallbackOffline: 'Lo siento, ahora mismo no puedo responder. Inténtalo de nuevo en un momento o deja tu correo y el equipo te contactará.',
     talkToHuman: 'Hablar con una persona',
     cannotShareInternals: 'No puedo compartir detalles sobre mi configuración, pero con gusto te ayudo con tu consulta. ¿En qué puedo ayudarte?',
+    agentJoined: (name) => `${name ?? 'Una persona del equipo'} se ha unido a la conversación.`,
+    returnedToAi: 'Vuelves a hablar con nuestro asistente de IA. Puedes pedir una persona del equipo cuando quieras.',
+    conversationClosed: 'Esta conversación se ha cerrado. Escribe cuando quieras para iniciar una nueva.',
   },
   fr: {
     handoffOnline: "J'ai demandé à un membre de l'équipe de nous rejoindre. Quelqu'un sera là sous peu — n'hésitez pas à ajouter des détails.",
@@ -74,6 +92,9 @@ const TEXT: Record<
     fallbackOffline: "Désolé, je n'arrive pas à répondre pour le moment. Réessayez dans un instant ou laissez votre e-mail pour que l'équipe vous recontacte.",
     talkToHuman: 'Parler à une personne',
     cannotShareInternals: 'Je ne peux pas partager les détails de ma configuration, mais je vous aide volontiers. Que puis-je faire pour vous ?',
+    agentJoined: (name) => `${name ?? "Un membre de l'équipe"} a rejoint la conversation.`,
+    returnedToAi: "Vous discutez à nouveau avec notre assistant IA. Vous pouvez demander un membre de l'équipe à tout moment.",
+    conversationClosed: 'Cette conversation est terminée. Écrivez-nous à tout moment pour en commencer une nouvelle.',
   },
 };
 

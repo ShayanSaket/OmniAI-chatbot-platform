@@ -32,9 +32,9 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
-      { href: '/inbox', label: 'Inbox', icon: Inbox, permission: 'inbox:access', comingSoon: true },
-      { href: '/customers', label: 'Customers', icon: Users, permission: 'customers:view', comingSoon: true },
-      { href: '/leads', label: 'Leads', icon: Target, permission: 'leads:view', comingSoon: true },
+      { href: '/inbox', label: 'Inbox', icon: Inbox, permission: 'inbox:access' },
+      { href: '/customers', label: 'Customers', icon: Users, permission: 'customers:view' },
+      { href: '/leads', label: 'Leads', icon: Target, permission: 'leads:view' },
     ],
   },
   {
@@ -49,7 +49,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Workspace',
     items: [
-      { href: '/analytics', label: 'Analytics', icon: BarChart3, permission: 'analytics:view', comingSoon: true },
+      { href: '/analytics', label: 'Analytics', icon: BarChart3, permission: 'analytics:view' },
       { href: '/integrations', label: 'Integrations', icon: Plug, permission: 'integrations:manage' },
       { href: '/settings', label: 'Settings', icon: Settings, permission: 'team:view' },
     ],

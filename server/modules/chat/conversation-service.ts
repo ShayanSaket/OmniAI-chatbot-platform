@@ -1,5 +1,6 @@
 import 'server-only';
 import type { ChannelType, Conversation, Message, Prisma } from '@prisma/client';
+import { channels, publish } from '../../realtime/bus';
 import type { TenantDb } from '../../tenancy/tenant-db';
 
 export const MESSAGE_INCLUDE = { senderUser: { select: { name: true } } } as const;
@@ -50,7 +51,7 @@ export async function appendMessage(
   data: Omit<Prisma.MessageUncheckedCreateInput, 'organizationId' | 'conversationId' | 'channel'>,
 ): Promise<Message & { senderUser: { name: string | null } | null }> {
   const now = new Date();
-  return db.$transaction(async (tx) => {
+  const stored = await db.$transaction(async (tx) => {
     const message = await tx.message.create({
       data: { ...data, organizationId: conversation.organizationId, conversationId: conversation.id, channel: conversation.channel },
       include: MESSAGE_INCLUDE,
@@ -68,6 +69,11 @@ export async function appendMessage(
     });
     return message;
   });
+  // Customer messages are announced by the pipeline (it knows whether the conversation is new).
+  if (data.senderType !== 'CUSTOMER') {
+    await publish(channels.inbox(conversation.organizationId), { type: 'message.created', conversationId: conversation.id, messageId: stored.id, senderType: data.senderType });
+  }
+  return stored;
 }
 
 export function recentMessages(db: TenantDb, conversationId: string, take = 50) {

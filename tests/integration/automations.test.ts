@@ -332,7 +332,9 @@ describe('automations', () => {
     expect(assignees).toEqual([a1.user.id, a2.user.id].sort());
     const agentCtx = contextFor(organizationId, a1.user.id, 'AGENT');
     const notes = await listNotifications(agentCtx);
-    expect(notes.items[0]!.title).toBe('Conversation assigned to you');
+    // Handoff requests also notify the whole team (phase 6); the assignment notice is separate.
+    expect(notes.items.map((n) => n.title)).toContain('Conversation assigned to you');
+    expect(notes.items.some((n) => n.title.endsWith('is waiting for a team member'))).toBe(true);
     await markNotificationsRead(agentCtx, 'all');
     expect((await listNotifications(agentCtx)).unread).toBe(0);
   });

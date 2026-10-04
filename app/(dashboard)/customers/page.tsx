@@ -1,25 +1,21 @@
 import type { Metadata } from 'next';
-import { Users } from 'lucide-react';
-import { ModuleRoadmap } from '@/components/common/module-roadmap';
+import { PageHeader } from '@/components/common/page-header';
+import { CustomersTable } from '@/components/customers/customers-table';
+import { parseCustomerQuery } from '@/lib/customers';
 import { requirePageAuth } from '@/server/auth/session';
+import { listCustomers, listTags } from '@/server/modules/customers/customer-service';
 
 export const metadata: Metadata = { title: 'Customers' };
 
-export default async function CustomersPage() {
-  await requirePageAuth('customers:view');
+export default async function CustomersPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+  const ctx = await requirePageAuth('customers:view');
+  const params = new URLSearchParams(Object.entries(searchParams).flatMap(([k, v]) => (typeof v === 'string' ? [[k, v]] : [])));
+  const { cursor: _cursor, ...filters } = parseCustomerQuery(params);
+  const [initial, tags] = await Promise.all([listCustomers(ctx, filters), listTags(ctx)]);
   return (
-    <ModuleRoadmap
-      title="Customers"
-      description="Every person who has talked to your business, across channels."
-      icon={Users}
-      phase={7}
-      capabilities={[
-        'Profiles with contact details, language, tags and custom fields',
-        'Channel identities linked to one customer',
-        'Conversation, lead and ticket history',
-        'AI-generated customer summary and notes',
-        'GDPR export and deletion'
-      ]}
-    />
+    <>
+      <PageHeader title="Customers" description="Everyone who has talked to your business, across website chat and WhatsApp." />
+      <CustomersTable initial={initial} initialFilters={filters} tags={tags} />
+    </>
   );
 }

@@ -142,7 +142,8 @@ export function Teaser({ config, onOpen, onDismiss, strings, dir }: { config: Wi
 
 function statusLine(config: WidgetConfig, conversation: WidgetConversation | null, strings: WidgetStrings, lang: WidgetLang) {
   if (conversation?.status === 'HUMAN_ACTIVE') {
-    return { dot: 'bg-emerald-500', text: `${conversation.agentName ?? strings.teamMember} · ${strings.teamMember}` };
+    // The agent's name is already the header title.
+    return { dot: 'bg-emerald-500', text: strings.teamMember };
   }
   if (conversation?.status === 'WAITING_FOR_AGENT') return { dot: 'bg-amber-500 animate-pulse-dot', text: strings.waitingForAgent };
   if (config.team.online) return { dot: 'bg-emerald-500', text: `${strings.aiAssistant} · ${strings.teamOnline}` };
@@ -307,6 +308,8 @@ export interface MessageListProps {
   /** Tool activity while the reply is being prepared. */
   streamingStatus?: 'searching' | 'working' | null;
   awaitingReply: boolean;
+  /** A team member is typing (name or ''), null otherwise. */
+  agentTyping?: string | null;
   strings: WidgetStrings;
   lang: WidgetLang;
   onQuickReply?: (text: string) => void;
@@ -320,6 +323,7 @@ export function MessageList({
   streamingText,
   streamingStatus,
   awaitingReply,
+  agentTyping = null,
   strings,
   lang,
   onQuickReply,
@@ -343,7 +347,7 @@ export function MessageList({
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages, streamingText, awaitingReply, streamingStatus]);
+  }, [messages, streamingText, awaitingReply, streamingStatus, agentTyping]);
 
   return (
     <div
@@ -441,6 +445,18 @@ export function MessageList({
           })}
         </div>
       ))}
+
+      {agentTyping !== null && !awaitingReply && !streamingText && (
+        <div className="mb-3 flex items-end gap-2" role="status">
+          <AgentAvatar name={agentTyping || null} size={28} />
+          <div className="rounded-2xl rounded-es-md bg-white px-3.5 py-2.5 shadow-sm ring-1 ring-slate-900/[0.06]">
+            <TypingDots />
+            <span className="sr-only">
+              {agentTyping || strings.teamMember} {strings.typing}
+            </span>
+          </div>
+        </div>
+      )}
 
       {(awaitingReply || streamingText) && (
         <div className="mb-3 flex items-end gap-2">
@@ -677,6 +693,7 @@ export interface PanelProps {
   /** Tool activity while the reply is being prepared. */
   streamingStatus?: 'searching' | 'working' | null;
   awaitingReply: boolean;
+  agentTyping?: string | null;
   connection: 'connected' | 'reconnecting';
   expanded: boolean;
   canExpand: boolean;
@@ -744,6 +761,7 @@ export function Panel(props: PanelProps) {
           streamingText={props.streamingText}
           streamingStatus={props.streamingStatus}
           awaitingReply={props.awaitingReply}
+          agentTyping={props.agentTyping}
           strings={strings}
           lang={lang}
           onQuickReply={(q) => (isHandoffPhrase(q) && props.onHandoff ? props.onHandoff() : props.onSend(q, []))}

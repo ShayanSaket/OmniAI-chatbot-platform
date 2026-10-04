@@ -253,7 +253,20 @@ export function TextForm({ initial, documentId, onDone }: { initial?: { title: s
   );
 }
 
-export function AddSourceDialog({ open, onOpenChange, initialKind, onAdded }: { open: boolean; onOpenChange: (v: boolean) => void; initialKind: SourceKind; onAdded: () => void }) {
+export function AddSourceDialog({
+  open,
+  onOpenChange,
+  initialKind,
+  onAdded,
+  faqDraft,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialKind: SourceKind;
+  onAdded: () => void;
+  /** Pre-filled FAQ questions (e.g. from AI insights). */
+  faqDraft?: FaqValues;
+}) {
   const done = () => {
     onAdded();
     onOpenChange(false);
@@ -287,7 +300,7 @@ export function AddSourceDialog({ open, onOpenChange, initialKind, onAdded }: { 
             <WebsiteForm onDone={done} />
           </TabsContent>
           <TabsContent value="faq" className="pt-3">
-            <FaqForm onDone={done} />
+            <FaqForm initial={faqDraft} onDone={done} />
           </TabsContent>
           <TabsContent value="text" className="pt-3">
             <TextForm onDone={done} />

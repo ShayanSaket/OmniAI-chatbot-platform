@@ -108,4 +108,11 @@ export const RATE_LIMITS = {
   knowledgeWrite: { name: 'knowledge-write', limit: 60, windowSeconds: 10 * 60 },
   /** AI replies per WhatsApp sender (messages beyond this are stored, not answered). */
   whatsappAiPerCustomer: { name: 'wa-ai-customer', limit: 20, windowSeconds: 60 },
+  /** AI reply suggestions per team member. */
+  inboxSuggestion: { name: 'inbox-suggest', limit: 30, windowSeconds: 60 },
+  /** Agent replies per team member. */
+  inboxReply: { name: 'inbox-reply', limit: 60, windowSeconds: 60 },
+  inboxUpload: { name: 'inbox-upload', limit: 30, windowSeconds: 10 * 60 },
+  /** AI insight reports per organization. */
+  insightReport: { name: 'insight-report', limit: 10, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimitRule>;

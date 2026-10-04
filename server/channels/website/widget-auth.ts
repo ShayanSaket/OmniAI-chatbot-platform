@@ -93,7 +93,8 @@ export async function requireVisitor(req: Request, botKey: string): Promise<Visi
     throw new AppError('UNAUTHENTICATED', 'Your chat session has expired. Please reload the page.');
   }
   const db = tenantDb(resolved.organization.id);
-  const customer = await db.customer.findUnique({ where: { id: claims.customerId }, select: { id: true } });
+  const customer = await db.customer.findUnique({ where: { id: claims.customerId }, select: { id: true, mergedIntoId: true } });
   if (!customer) throw new AppError('UNAUTHENTICATED', 'Your chat session has expired. Please reload the page.');
-  return { ...resolved, organizationId: resolved.organization.id, customerId: claims.customerId, claims, db };
+  // A profile the team merged into another one: the session continues on the merged profile.
+  return { ...resolved, organizationId: resolved.organization.id, customerId: customer.mergedIntoId ?? customer.id, claims, db };
 }

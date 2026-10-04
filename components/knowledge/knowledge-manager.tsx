@@ -40,7 +40,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/lib/api-client';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { AddSourceDialog, FaqForm, TextForm, type SourceKind } from './source-forms';
+import { AddSourceDialog, FaqForm, TextForm, type FaqValues, type SourceKind } from './source-forms';
 
 export interface KnowledgeDoc {
   id: string;
@@ -314,9 +314,10 @@ function DocumentSheet({ id, onClose, onChanged }: { id: string | null; onClose:
   );
 }
 
-export function KnowledgeManager({ initial }: { initial: KnowledgeOverviewData }) {
+export function KnowledgeManager({ initial, faqDraft }: { initial: KnowledgeOverviewData; faqDraft?: FaqValues }) {
   const [data, setData] = useState(initial);
-  const [adding, setAdding] = useState<SourceKind | null>(null);
+  // Opened from AI insights with unanswered questions to add as FAQ entries.
+  const [adding, setAdding] = useState<SourceKind | null>(faqDraft ? 'faq' : null);
   const [selected, setSelected] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<KnowledgeDoc | null>(null);
   const [filter, setFilter] = useState('');
@@ -499,7 +500,7 @@ export function KnowledgeManager({ initial }: { initial: KnowledgeOverviewData }
 
       <SearchTester />
 
-      {adding && <AddSourceDialog open initialKind={adding} onOpenChange={(v) => !v && setAdding(null)} onAdded={() => void refresh()} />}
+      {adding && <AddSourceDialog open initialKind={adding} faqDraft={adding === 'faq' ? faqDraft : undefined} onOpenChange={(v) => !v && setAdding(null)} onAdded={() => void refresh()} />}
       <DocumentSheet id={selected} onClose={() => setSelected(null)} onChanged={() => void refresh()} />
       <AlertDialog open={deleting !== null} onOpenChange={(v) => !v && setDeleting(null)}>
         <AlertDialogContent>

@@ -6,7 +6,7 @@ An omnichannel AI customer-service platform: one AI agent, one knowledge base an
 inbox for **website live chat** and **WhatsApp Business**, with lead capture, human
 handoff and analytics. Multi-tenant from day one.
 
-> **Status:** Phases 1–5 and 9 of 10 are complete (6 inbox, 7 customers & leads, 8 analytics and 10 hardening are next):
+> **Status:** Phases 1–9 of 10 are complete (10 hardening is next):
 > - **Phase 1:** architecture, database, auth, roles, tenant isolation, admin dashboard,
 >   Docker and demo data.
 > - **Phase 2:** the **embeddable website chat widget**.
@@ -14,6 +14,13 @@ handoff and analytics. Multi-tenant from day one.
 >   escalation, with full settings under *AI Agent*.
 > - **Phase 4:** the **knowledge base**: files, websites, FAQ and text sources, and
 >   hybrid semantic + keyword retrieval with citations.
+> - **Phase 6:** the **unified inbox**: website and WhatsApp conversations in one live
+>   list, human takeover, replies on the original channel, assignment, notes, summaries
+>   and AI-suggested replies.
+> - **Phase 7:** **customers and leads**: profiles with history, tags and custom fields,
+>   safe merging of duplicates, GDPR export and deletion, and a lead pipeline.
+> - **Phase 8:** **analytics and AI insights**: KPIs with custom date ranges, top
+>   questions, knowledge-base usage, AI cost, and the questions the bot couldn't answer.
 > - **Phase 9:** **automations**, signed outbound **webhooks**, a **HubSpot**
 >   connector and the integration interface, plus in-app notifications.
 > - **Phase 5:** **WhatsApp Business** (Meta Cloud API): the same AI pipeline, media and
@@ -191,6 +198,45 @@ OpenAI-compatible server that supports tool calling.
 Order status: connect your shop under **Tools → Order lookup connection** (owners only).
 OmniAI calls `GET <your URL with {orderNumber}>?email=<customer email>` with an optional
 Bearer key and expects JSON with at least `status` (404 = not found or wrong email).
+
+### Inbox
+**Inbox** shows website and WhatsApp conversations in one live list (filters: open /
+closed, waiting, mine, unread, website, WhatsApp, AI, human, unassigned, and search).
+
+- **Take over** stops the AI; the customer sees who joined. Simply replying takes over too.
+  **Return to AI** hands the conversation back.
+- Replies go out on the customer's channel, with attachments. On WhatsApp, after the
+  24-hour window only approved templates can be sent (a dialog lists them).
+- **AI suggestions:** *Generate reply*, *Shorten*, *Friendlier*, *Professional* and
+  *Translate* fill the reply box. Nothing is sent until you press Send.
+- The side panel shows the customer, the AI summary, leads, tickets, appointments,
+  internal notes and earlier conversations.
+- Agents can assign conversations to themselves; admins can assign anyone. Assignees and,
+  for handoff requests, the team get a notification.
+
+### Customers and leads
+- **Customers:** search and filter everyone who has chatted; each profile shows contact
+  details, tags, custom fields, channels, conversations, leads, tickets, appointments,
+  notes and what the AI has learned. Admins can edit, **export** (JSON) or **delete** a
+  customer with all their data.
+- **Duplicates:** when a visitor types an email or phone that another profile already has,
+  the profile shows *Possible duplicate*; merge it after checking. (Typed contact details
+  are never merged automatically, so nobody can see another customer's history by typing
+  their email. WhatsApp numbers are verified and linked automatically.)
+- **Leads:** a pipeline from New to Won/Lost. Drag cards between stages, open a lead to
+  edit it, set an owner and a value, add leads from calls or events, and export CSV.
+
+### Analytics
+**Analytics** shows conversations, customers, messages, AI resolution and escalation
+rates, leads and conversion, response times, top questions and topics, knowledge-base
+usage and estimated AI cost, for today, 7/30/90 days or a custom range, compared with the
+previous period. Export the daily numbers as CSV.
+
+**AI insights** lists the questions the assistant couldn't answer from your data, grouped
+by topic ("8 customers asked about installation"), with a button that opens the
+knowledge base with those questions ready to answer. It also shows the most frequent
+questions, complaints and intent trends. *Write insights with AI* turns this into a short
+report with next steps.
 
 ### Automations
 Open **Automations** and start from a template or build your own: **When** (new

@@ -84,10 +84,13 @@ export async function startSession(resolved: ResolvedBot, input: StartSessionInp
 
   const db = tenantDb(organization.id);
   const claims = input.token ? verifyVisitorToken(input.token, e.AUTH_SECRET) : null;
-  let customer =
+  const claimed =
     claims && claims.botId === bot.id
-      ? await db.customer.findUnique({ where: { id: claims.customerId }, select: { id: true, name: true } })
+      ? await db.customer.findUnique({ where: { id: claims.customerId }, select: { id: true, name: true, mergedIntoId: true } })
       : null;
+  // Follow a merge done by the team; the token is re-issued for the merged profile below.
+  const mergedInto = claimed?.mergedIntoId ? await db.customer.findUnique({ where: { id: claimed.mergedIntoId }, select: { id: true, name: true } }) : null;
+  let customer: { id: string; name: string | null } | null = mergedInto ?? (claimed && !claimed.mergedIntoId ? { id: claimed.id, name: claimed.name } : null);
 
   let token = input.token ?? '';
   if (!customer) {
@@ -112,7 +115,7 @@ export async function startSession(resolved: ResolvedBot, input: StartSessionInp
     token = issueVisitorToken({ botId: bot.id, customerId: created.id }, e.AUTH_SECRET);
     await publish(channels.inbox(organization.id), { type: 'customer.created', customerId: created.id });
     emitDomainEvent({ type: 'customer.created', organizationId: organization.id, refs: { customerId: created.id }, data: { channel: 'WEBSITE' } });
-  } else if (claims && Date.now() / 1000 - claims.iat > REFRESH_AFTER_SECONDS) {
+  } else if (mergedInto || (claims && Date.now() / 1000 - claims.iat > REFRESH_AFTER_SECONDS)) {
     token = issueVisitorToken({ botId: bot.id, customerId: customer.id }, e.AUTH_SECRET);
   }
 

@@ -260,6 +260,7 @@ model Organization {
   whatsappTemplates  WhatsAppTemplate[]
   automationRuns     AutomationRun[]
   notifications      Notification[]
+  insightReports     InsightReport[]
 }
 
 model User {
@@ -283,6 +284,7 @@ model User {
   auditLogs             AuditLog[]
   knowledgeDocuments    KnowledgeDocument[]
   notifications         Notification[]
+  insightReports        InsightReport[]
 }
 
 /// A user's seat in an organization (a human support "agent" when role = AGENT).
@@ -505,6 +507,8 @@ model Customer {
   @@index([organizationId, createdAt])
   @@index([organizationId, email])
   @@index([organizationId, phone])
+  @@index([organizationId, lastSeenAt(sort: Desc)])
+  @@index([mergedIntoId])
 }
 
 /// Channel-specific identifier (anonymous widget visitor id, WhatsApp wa_id, …).
@@ -705,6 +709,10 @@ model Lead {
   intent           Intent?
   source           ChannelType?
   estimatedValue   Decimal?        @db.Decimal(12, 2)
+  /// Why a lead was lost (set with status LOST).
+  lostReason       String?
+  /// When the lead reached WON or LOST (conversion analytics).
+  closedAt         DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -1060,4 +1068,23 @@ model WebhookDelivery {
   @@index([status, nextAttemptAt])
   @@index([organizationId, createdAt])
   @@index([endpointId, createdAt])
+}
+
+/// AI-written analysis of conversations for a period (Analytics → AI insights). Generated
+/// on demand from aggregated, already-computed analytics — never from raw transcripts.
+model InsightReport {
+  id             String   @id @default(cuid())
+  organizationId String
+  periodStart    DateTime
+  periodEnd      DateTime
+  /// { summary, insights: [{ title, detail, kind, action, metric }] }
+  content        Json
+  model          String
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt(sort: Desc)])
 }

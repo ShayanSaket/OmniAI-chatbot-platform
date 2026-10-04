@@ -2,7 +2,9 @@ import 'server-only';
 import type { Conversation } from '@prisma/client';
 import { isWithinBusinessHours, nextOpening, type BusinessHoursRule } from '@/lib/business-hours';
 import { emitDomainEvent } from '../../events/domain-events';
+import { customerDisplayName } from '@/lib/inbox';
 import { channels, publish } from '../../realtime/bus';
+import { notifyMembers } from '../notifications/notification-service';
 import type { TenantDb } from '../../tenancy/tenant-db';
 import { appendMessage, CONVERSATION_INCLUDE } from './conversation-service';
 import { formatOpening, systemText } from './system-messages';
@@ -51,7 +53,7 @@ export async function requestHumanHandoff(params: {
 
   const text = systemText(params.language);
   // Only ask for contact details when we have none (WhatsApp always has the number).
-  const contact = await db.customer.findUnique({ where: { id: conversation.customerId }, select: { email: true, phone: true } });
+  const contact = await db.customer.findUnique({ where: { id: conversation.customerId }, select: { id: true, name: true, email: true, phone: true } });
   const reachable = conversation.channel === 'WHATSAPP' || Boolean(contact?.email || contact?.phone);
   const when = opening ? formatOpening(opening, timeZone, params.language) : null;
   const content = teamOnline ? text.handoffOnline : reachable ? text.handoffOfflineKnownContact(when) : text.handoffOffline(when);
@@ -71,6 +73,20 @@ export async function requestHumanHandoff(params: {
     reason,
     ...(params.detail?.trigger ? { trigger: params.detail.trigger } : {}),
   });
+
+  const REASON_TEXT: Record<HandoffReason, string> = {
+    customer_request: 'asked to talk to a person',
+    ai_failure: 'could not be answered by the AI',
+    ai_escalation: 'was escalated by the AI',
+    rule: 'matched an escalation rule',
+  };
+  const who = contact ? customerDisplayName(contact) : 'A customer';
+  await notifyMembers(conversation.organizationId, {
+    ...(updated.assignedToId ? { userIds: [updated.assignedToId] } : { roles: ['OWNER', 'ADMIN', 'AGENT'] }),
+    title: teamOnline ? `${who} is waiting for a team member` : `${who} needs a follow-up`,
+    body: `The conversation ${REASON_TEXT[reason]} (${conversation.channel === 'WHATSAPP' ? 'WhatsApp' : 'website'}).${teamOnline ? '' : ' The team was offline, so the AI keeps helping until someone follows up.'}`,
+    link: `/inbox?conversation=${conversation.id}`,
+  }).catch(() => undefined);
 
   emitDomainEvent({
     type: 'human_handoff.requested',

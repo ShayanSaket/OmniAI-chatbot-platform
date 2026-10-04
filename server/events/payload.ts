@@ -37,7 +37,7 @@ export async function buildEventPayload(event: DomainEvent) {
     refs.leadId
       ? db.lead.findUnique({
           where: { id: refs.leadId },
-          select: { id: true, status: true, temperature: true, name: true, email: true, phone: true, company: true, requestedService: true, message: true, preferredContact: true, source: true, intent: true, createdAt: true },
+          select: { id: true, status: true, temperature: true, name: true, email: true, phone: true, company: true, requestedService: true, message: true, preferredContact: true, source: true, intent: true, estimatedValue: true, lostReason: true, closedAt: true, createdAt: true },
         })
       : null,
     refs.ticketId ? db.ticket.findUnique({ where: { id: refs.ticketId }, select: { id: true, subject: true, description: true, priority: true, status: true, createdAt: true } }) : null,
@@ -82,7 +82,17 @@ export async function buildEventPayload(event: DomainEvent) {
             },
           }
         : {}),
-      ...(lead ? { lead: { ...lead, reference: ref('L', lead.id), createdAt: lead.createdAt.toISOString() } } : {}),
+      ...(lead
+        ? {
+            lead: {
+              ...lead,
+              reference: ref('L', lead.id),
+              estimatedValue: lead.estimatedValue?.toString() ?? null,
+              closedAt: lead.closedAt?.toISOString() ?? null,
+              createdAt: lead.createdAt.toISOString(),
+            },
+          }
+        : {}),
       ...(ticket ? { ticket: { ...ticket, reference: ref('T', ticket.id), createdAt: ticket.createdAt.toISOString() } } : {}),
       ...(appointment ? { appointment: { ...appointment, reference: ref('A', appointment.id), createdAt: appointment.createdAt.toISOString() } } : {}),
       ...event.data,
